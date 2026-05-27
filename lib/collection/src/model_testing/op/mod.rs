@@ -256,14 +256,22 @@ impl Swarm {
 
     /// Draw a per-run config: each non-forced op is included with probability 0.5 (keeping its
     /// base weight); omitted ops get weight 0.
-    pub(super) fn random(rng: &mut impl Rng) -> Self {
+    ///
+    /// With `enable_force_off`, the known-broken `FORCE_OFF` ops are promoted to forced-on instead
+    /// (enabled in every config) so a run can deliberately exercise them — see the CLI flag of the
+    /// same name. They never draw `random_bool` either way (forced-off or forced-on), so the
+    /// rng-draw count is identical regardless of the flag and a given seed reproduces the same op
+    /// stream for the non-broken ops.
+    pub(super) fn random(rng: &mut impl Rng, enable_force_off: bool) -> Self {
         let mut weights = Self::BASE;
         for (i, w) in weights.iter_mut().enumerate() {
+            let forced_off = Self::FORCE_OFF.contains(&i);
+            let forced_on = Self::FORCE_ON.contains(&i) || (enable_force_off && forced_off);
             // Short-circuit order matters: `random_bool` is only drawn for non-forced ops, so
             // the rng-draw count stays fixed (one per swarmable op) regardless of the forced
             // sets — keeping a given seed reproducible.
-            let disable = Self::FORCE_OFF.contains(&i)
-                || (!Self::FORCE_ON.contains(&i) && !rng.random_bool(0.5));
+            let disable =
+                (forced_off && !enable_force_off) || (!forced_on && !rng.random_bool(0.5));
             if disable {
                 *w = 0;
             }

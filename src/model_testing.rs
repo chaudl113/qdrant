@@ -100,6 +100,14 @@ struct Args {
     /// apply path vs. the reload path.
     #[clap(long, default_value_t = false)]
     pre_restart_check: bool,
+
+    /// Promote the always-disabled (`FORCE_OFF`) ops — DeleteByFilter, CreateVectorName,
+    /// DeleteVectorName — to forced-on, so they're enabled in every swarm config and guaranteed
+    /// to fire. These ops are masked off by default because they trip known engine bugs (see the
+    /// `FORCE_OFF` comment in `op/mod.rs`); enable this to deliberately reproduce them. The rng-draw
+    /// count is unchanged vs. the default, so the non-broken op stream stays reproducible per seed.
+    #[clap(long, default_value_t = false)]
+    enable_force_off: bool,
 }
 
 #[tokio::main(flavor = "multi_thread")]
@@ -141,7 +149,7 @@ async fn main() {
         "model_testing: seed={} op_num={} shard_count={} id_pool={} storage_path={} \
          disable_optimizer={} max_segment_size_kb={} indexing_threshold_kb={} \
          flush_interval_sec={} restart_probability={} swarm_interval={} on_disk={} \
-         async_scorer={} pre_restart_check={}",
+         async_scorer={} pre_restart_check={} enable_force_off={}",
         args.seed,
         args.op_num,
         args.shard_count,
@@ -156,6 +164,7 @@ async fn main() {
         args.on_disk,
         args.async_scorer,
         args.pre_restart_check,
+        args.enable_force_off,
     );
     let start = Instant::now();
     collection::model_testing::run(
@@ -172,6 +181,7 @@ async fn main() {
         args.swarm_interval as usize,
         args.on_disk,
         args.pre_restart_check,
+        args.enable_force_off,
         shutdown,
     )
     .await;

@@ -85,6 +85,7 @@ impl Trace {
         flush_interval_sec: u64,
         restart_probability: f64,
         swarm_interval: usize,
+        enable_force_off: bool,
     ) {
         self.write(&json!({
             "kind": "Header",
@@ -98,6 +99,7 @@ impl Trace {
             "flush_interval_sec": flush_interval_sec,
             "restart_probability": restart_probability,
             "swarm_interval": swarm_interval,
+            "enable_force_off": enable_force_off,
         }));
     }
 

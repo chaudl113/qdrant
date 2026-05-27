@@ -123,6 +123,7 @@ pub async fn run(
     swarm_interval: usize,
     on_disk: bool,
     pre_restart_check: bool,
+    enable_force_off: bool,
     shutdown: Arc<AtomicBool>,
 ) {
     let (collection_dir, snapshots_dir, mut collection) = fixture::fixture(
@@ -153,6 +154,7 @@ pub async fn run(
         flush_interval_sec,
         restart_probability,
         swarm_interval,
+        enable_force_off,
     );
 
     let mut model: Model = Model::new();
@@ -166,7 +168,7 @@ pub async fn run(
     // reproducible; each redraw is logged with its op tick so a failure is attributable to the
     // config that was live. (This consumes rng draws, so the op stream differs from a non-swarm
     // build for the same seed.)
-    let mut swarm = op::Swarm::random(rng);
+    let mut swarm = op::Swarm::random(rng, enable_force_off);
     let initial_enabled = swarm.enabled_ops();
     trace.swarm(0, &initial_enabled);
     println!("model_testing: op:0 swarm -> {initial_enabled:?}");
@@ -187,7 +189,7 @@ pub async fn run(
         // Recompute the swarm config at each interval boundary (op 0 was drawn before the loop).
         if i > 0 && i % swarm_interval == 0 {
             let prev = swarm.enabled_ops();
-            swarm = op::Swarm::random(rng);
+            swarm = op::Swarm::random(rng, enable_force_off);
             let next = swarm.enabled_ops();
             // Trace keeps the full enabled set (for reproducibility); the console shows only the
             // delta vs. the previous config — that's what changed.
